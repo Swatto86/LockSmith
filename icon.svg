@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e3a5f"/>
+      <stop offset="100%" style="stop-color:#0f172a"/>
+    </linearGradient>
+    <linearGradient id="lockGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#60a5fa"/>
+      <stop offset="100%" style="stop-color:#3b82f6"/>
+    </linearGradient>
+    <linearGradient id="shackleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#93c5fd"/>
+      <stop offset="100%" style="stop-color:#60a5fa"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Circular background -->
+  <circle cx="256" cy="256" r="240" fill="url(#bgGrad)"/>
+  <circle cx="256" cy="256" r="230" fill="none" stroke="#334155" stroke-width="4"/>
+
+  <!-- Padlock body -->
+  <rect x="140" y="260" width="232" height="160" rx="20" ry="20" fill="url(#lockGrad)"/>
+
+  <!-- Padlock body highlight -->
+  <rect x="150" y="270" width="212" height="10" rx="5" ry="5" fill="#93c5fd" opacity="0.4"/>
+
+  <!-- Open shackle (U-shape, tilted to show it's open) -->
+  <g transform="translate(-30, -20) rotate(-15, 256, 200)">
+    <!-- Outer shackle -->
+    <path d="M180 260 L180 160 A76 76 0 0 1 332 160 L332 180"
+          fill="none" stroke="url(#shackleGrad)" stroke-width="36" stroke-linecap="round"/>
+    <!-- Inner shackle cutout (to make it hollow) -->
+    <path d="M180 260 L180 160 A76 76 0 0 1 332 160 L332 180"
+          fill="none" stroke="url(#bgGrad)" stroke-width="16" stroke-linecap="round"/>
+  </g>
+
+  <!-- Keyhole -->
+  <circle cx="256" cy="330" r="24" fill="#1e293b"/>
+  <rect x="248" y="330" width="16" height="50" rx="4" fill="#1e293b"/>
+
+  <!-- Subtle shadow under shackle -->
+  <ellipse cx="256" cy="268" rx="100" ry="8" fill="#000" opacity="0.2"/>
+</svg>
