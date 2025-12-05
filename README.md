@@ -37,7 +37,7 @@ Download the latest `locksmith.exe` from the [Releases](https://github.com/youru
 
 ```bash
 git clone https://github.com/yourusername/LockSmith.git
-cd LockSmith/src-tauri
+cd LockSmith/src
 cargo build --release
 ```
 
@@ -80,9 +80,11 @@ The executable will be at `target/release/locksmith.exe`.
 
 ```
 LockSmith/
-├── src-tauri/
+├── src/
 │   ├── src/
 │   │   └── main.rs         # Application source code
+│   ├── tests/              # Integration tests
+│   ├── benches/            # Performance benchmarks
 │   ├── icons/              # Application icons
 │   ├── Cargo.toml          # Rust dependencies
 │   └── build.rs            # Build script (Windows manifest)
@@ -105,7 +107,7 @@ LockSmith/
 ### Commands
 
 ```bash
-cd src-tauri
+cd src
 
 # Run in debug mode
 cargo run
@@ -113,8 +115,11 @@ cargo run
 # Build release binary
 cargo build --release
 
-# Run tests (requires admin)
+# Run tests
 cargo test
+
+# Run benchmarks
+cargo bench
 
 # Check formatting
 cargo fmt --check

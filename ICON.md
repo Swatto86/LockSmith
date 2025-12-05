@@ -13,11 +13,11 @@ LockSmith uses an open padlock icon to represent its file lock management functi
 ## Source Files
 
 - `icon.svg` — Master vector file (512x512)
-- `src-tauri/icons/icon.ico` — Windows icon (multi-resolution)
-- `src-tauri/icons/icon.png` — 256x256 PNG
-- `src-tauri/icons/128x128.png` — 128x128 PNG
-- `src-tauri/icons/64x64.png` — 64x64 PNG
-- `src-tauri/icons/32x32.png` — 32x32 PNG
+- `src/icons/icon.ico` — Windows icon (multi-resolution)
+- `src/icons/icon.png` — 256x256 PNG
+- `src/icons/128x128.png` — 128x128 PNG
+- `src/icons/64x64.png` — 64x64 PNG
+- `src/icons/32x32.png` — 32x32 PNG
 
 ## Regenerating Icons
 
@@ -27,22 +27,22 @@ If you modify `icon.svg`, regenerate the PNG files:
 
 ```bash
 # Install ImageMagick first, then:
-magick icon.svg -resize 256x256 src-tauri/icons/icon.png
-magick icon.svg -resize 128x128 src-tauri/icons/128x128.png
-magick icon.svg -resize 64x64 src-tauri/icons/64x64.png
-magick icon.svg -resize 32x32 src-tauri/icons/32x32.png
+magick icon.svg -resize 256x256 src/icons/icon.png
+magick icon.svg -resize 128x128 src/icons/128x128.png
+magick icon.svg -resize 64x64 src/icons/64x64.png
+magick icon.svg -resize 32x32 src/icons/32x32.png
 
 # Create ICO file with multiple resolutions
-magick icon.svg -define icon:auto-resize=256,128,64,48,32,16 src-tauri/icons/icon.ico
+magick icon.svg -define icon:auto-resize=256,128,64,48,32,16 src/icons/icon.ico
 ```
 
 ### Using Inkscape
 
 ```bash
-inkscape icon.svg -w 256 -h 256 -o src-tauri/icons/icon.png
-inkscape icon.svg -w 128 -h 128 -o src-tauri/icons/128x128.png
-inkscape icon.svg -w 64 -h 64 -o src-tauri/icons/64x64.png
-inkscape icon.svg -w 32 -h 32 -o src-tauri/icons/32x32.png
+inkscape icon.svg -w 256 -h 256 -o src/icons/icon.png
+inkscape icon.svg -w 128 -h 128 -o src/icons/128x128.png
+inkscape icon.svg -w 64 -h 64 -o src/icons/64x64.png
+inkscape icon.svg -w 32 -h 32 -o src/icons/32x32.png
 ```
 
 ## Fallback Icon

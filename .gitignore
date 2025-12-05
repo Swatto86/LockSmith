@@ -4,7 +4,7 @@
 *.pdb
 
 # Build artifacts
-/src-tauri/target/
+/src/target/
 
 # Logs
 logs
