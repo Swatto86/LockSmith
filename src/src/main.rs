@@ -432,6 +432,28 @@ const ERROR_NOT_ENOUGH_MEMORY: u32 = 8;
 //
 // Each error type is an "enum" - a type that can be one of several variants.
 // This lets us handle different kinds of errors in different ways.
+//
+// RUST SYNTAX EXPLAINED: `enum` (Enumerated Types)
+//
+// Rust enums are MUCH more powerful than C enums. In C, an enum is just
+// named integers:
+//
+//     enum Color { RED = 0, GREEN = 1, BLUE = 2 };  // C: just ints
+//
+// In Rust, each enum variant can HOLD DATA:
+//
+//     enum Message {
+//         Quit,                       // No data (like C)
+//         Move { x: i32, y: i32 },    // Holds a struct
+//         Write(String),              // Holds a String
+//         ChangeColor(u8, u8, u8),    // Holds three u8 values
+//     }
+//
+// This is called a "tagged union" or "sum type" - the enum "tag" tells you
+// which variant it is, and the data is the payload for that variant.
+//
+// This is incredibly useful for error handling: each error variant can
+// carry different information about what went wrong.
 
 // FileEnumError: Things that can go wrong when listing file locks
 //
@@ -450,15 +472,50 @@ enum FileEnumError {
 
     // WindowsApiError: Some other Windows error we didn't specifically handle.
     // The u32 inside holds the actual error code for debugging.
+    //
+    // RUST SYNTAX: `VariantName(Type)` - enum variant with data
+    //
+    // This variant CONTAINS a u32 value. When we create this error:
+    //     FileEnumError::WindowsApiError(5)
+    //
+    // When we match on it, we can extract that value:
+    //     match error {
+    //         FileEnumError::WindowsApiError(code) => println!("Error: {}", code),
+    //         ...
+    //     }
     WindowsApiError(u32),
 }
 
-// Implement the Display trait for FileEnumError.
-// This defines how the error appears when we print it with {} format.
-// Without this, we could only print it with {:?} (debug format).
+// RUST SYNTAX EXPLAINED: `impl Trait for Type`
+//
+// This is how we implement "interfaces" in Rust. The Display trait defines
+// how a type should be formatted as a string (like toString() in Java).
+//
+// In C, you might write a function: `char* file_enum_error_to_string(enum FileEnumError e)`
+// In Rust, you implement the Display trait, then you can use {} formatting:
+//     println!("{}", my_error);  // Calls our fmt() method
+//
+// RUST SYNTAX: `&self` parameter
+//
+// `&self` means "a reference to myself" - like `const FileEnumError* this` in C++.
+// We're borrowing self, not taking ownership, so the caller still owns the error.
+//
+// RUST SYNTAX: `fmt::Formatter<'_>` and `fmt::Result`
+//
+// The `'_` is an "elided lifetime" - we're telling Rust to infer how long
+// the reference lives. `fmt::Result` is shorthand for `Result<(), fmt::Error>`.
 impl fmt::Display for FileEnumError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // Match on self to handle each variant differently
+        // RUST SYNTAX: `match self { ... }`
+        //
+        // `match` is pattern matching - like a super-powered switch statement.
+        // Unlike C's switch:
+        //   - No fall-through (no break needed)
+        //   - MUST handle all cases (compiler enforces this)
+        //   - Can destructure data from enum variants
+        //
+        // The `self` here is `&FileEnumError` (reference to our error).
+        // Each arm uses `FileEnumError::VariantName` to match variants.
         match self {
             // For AccessDenied, give the user helpful instructions
             FileEnumError::AccessDenied => {
@@ -476,9 +533,17 @@ impl fmt::Display for FileEnumError {
     }
 }
 
-// Mark FileEnumError as a standard Rust Error.
-// This is a "marker trait" - we don't need to implement anything,
-// but it lets us use this error type with the ? operator and error handling.
+// RUST SYNTAX EXPLAINED: Empty `impl` block (marker trait)
+//
+// Some traits have no required methods - they just "mark" a type as having
+// some property. `std::error::Error` is one of these (once Display is implemented).
+//
+// By implementing Error, we get:
+//   - Compatibility with the `?` operator in functions returning Result
+//   - Integration with Rust's error handling ecosystem
+//   - The ability to use `Box<dyn Error>` for type-erased errors
+//
+// The empty `{}` means "I implement this trait with all default methods."
 impl std::error::Error for FileEnumError {}
 
 // ReleaseLockError: Things that can go wrong when releasing a file lock
@@ -525,8 +590,24 @@ impl std::error::Error for ReleaseLockError {}
 //
 // This is what we display in each row of our table.
 //
-// The Serialize and Deserialize derives let us convert this to/from JSON,
-// which we use for the test code (and could be used for exporting data).
+// RUST SYNTAX EXPLAINED: #[derive(...)] attributes
+//
+// In C, if you want to print a struct, compare structs, or copy structs,
+// you write those functions manually. In Rust, `derive` auto-generates them:
+//
+//   Debug      - Allows printing with {:?} format (for debugging)
+//   Clone      - Generates a .clone() method to make copies
+//   Serialize  - (from serde) Converts struct to JSON/other formats
+//   Deserialize - (from serde) Converts JSON/other formats back to struct
+//
+// The compiler writes the boring boilerplate for you!
+//
+// RUST SYNTAX: struct field syntax
+//
+// Unlike C, you declare the NAME first, then the TYPE (with a colon):
+//   field_name: Type
+//
+// This is the opposite of C: `Type field_name;`
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct FileLockInfo {
     // file_id: The unique identifier for this lock.
@@ -587,26 +668,93 @@ fn extract_filename(path: &str) -> String {
 // Windows uses UTF-16 encoding (16 bits per character), but Rust uses UTF-8
 // (variable width, usually 8 bits for ASCII). This function converts between them.
 //
-// The `unsafe` keyword is required because we're working with raw pointers -
-// Rust can't guarantee this memory is valid, so we have to be careful!
+// RUST SYNTAX EXPLAINED: `unsafe fn`
+//
+// The `unsafe` keyword marks code that can violate Rust's safety guarantees.
+// Rust's normal rules prevent: null dereferences, buffer overflows, data races.
+// But when talking to C/Windows, we MUST work with raw pointers.
+//
+// `unsafe` doesn't mean "bad" - it means "I, the programmer, am taking
+// responsibility for safety here. The compiler can't verify this."
+//
+// WHEN IS UNSAFE NEEDED?
+//   - Dereferencing raw pointers (*ptr)
+//   - Calling C/Windows functions
+//   - Working with raw memory (std::slice::from_raw_parts)
+//   - Implementing unsafe traits
+//
+// RUST SYNTAX: `*mut u16` and `*const u16`
+//
+// These are RAW POINTERS - like pointers in C:
+//   *mut T   = mutable raw pointer (like T* in C)
+//   *const T = immutable raw pointer (like const T* in C)
+//
+// Unlike Rust references (&T, &mut T), raw pointers:
+//   - Can be null
+//   - Can point to invalid memory
+//   - Are NOT tracked by the borrow checker
+//   - Can only be dereferenced inside `unsafe` blocks
 #[cfg(windows)]
 unsafe fn from_wide_ptr(ptr: *mut u16) -> String {
     // If the pointer is null (address 0), return an empty string
     // This is defensive programming - we don't crash on bad input
+    //
+    // RUST SYNTAX: `.is_null()` method on raw pointers
+    // Raw pointers have a few safe methods like is_null() that don't
+    // dereference the pointer - they just check the address value.
     if ptr.is_null() {
         return String::new();
     }
 
     // Find the length of the string by counting characters until we hit
     // a null terminator (0). This is how C strings work.
-    // We use .take_while() to stop when we find a zero.
+    //
+    // RUST SYNTAX EXPLAINED: `(0..).take_while(|&i| ...)`
+    //
+    // Let's break this down:
+    //   (0..)           - An infinite range starting at 0: 0, 1, 2, 3, ...
+    //   .take_while()   - Keep taking elements while condition is true
+    //   |&i|            - Closure parameter with pattern matching
+    //                     The & means "dereference the reference we receive"
+    //   *ptr.offset(i)  - Get value at ptr + i (like ptr[i] in C)
+    //   != 0            - Stop when we hit null terminator
+    //   .count()        - Count how many elements we took
+    //
+    // This is equivalent to C:
+    //     size_t len = 0;
+    //     while (ptr[len] != 0) len++;
+    //
+    // RUST SYNTAX: `*ptr.offset(i)`
+    //
+    // ptr.offset(i) does pointer arithmetic: returns ptr + i
+    // The * dereferences it to get the value at that address
+    // This is UNSAFE because Rust can't verify the pointer is valid!
     let len = (0..).take_while(|&i| *ptr.offset(i) != 0).count();
 
     // Create a slice (a view) of the u16 values
+    //
+    // RUST SYNTAX: `std::slice::from_raw_parts(ptr, len)`
+    //
+    // This creates a Rust slice (&[u16]) from a raw pointer and length.
+    // It's the bridge between C's "pointer + length" pattern and Rust's slices.
+    //
+    // This is UNSAFE because:
+    //   - We're asserting the pointer is valid for `len` elements
+    //   - We're asserting the memory is properly aligned
+    //   - We're asserting the memory won't be modified during use
+    //
+    // If ANY of these are false, we get undefined behavior!
     let slice = std::slice::from_raw_parts(ptr, len);
 
     // Convert from UTF-16 to a Rust String
     // "lossy" means invalid characters get replaced with � instead of crashing
+    //
+    // RUST SYNTAX: `String::from_utf16_lossy(slice)`
+    //
+    // This is a SAFE function (not unsafe) that takes a &[u16] slice.
+    // Once we have a valid slice, Rust can safely process the data.
+    // The "lossy" means if the UTF-16 is invalid, it replaces bad chars
+    // with the Unicode replacement character instead of panicking.
     String::from_utf16_lossy(slice)
 }
 
@@ -627,12 +775,24 @@ fn map_windows_error(code: u32) -> FileEnumError {
 //
 // Similar to above, but for lock release operations.
 // Note: error code 2 is ERROR_FILE_NOT_FOUND in Windows.
+//
+// RUST SYNTAX EXPLAINED: `match` with the `_` wildcard
+//
+// The `_` pattern means "match anything else" - it's like `default:` in C's switch.
+// Unlike C, Rust's match MUST be exhaustive - you must handle every possible value.
+// Since u32 has billions of values, `_` catches all the ones we didn't list.
+//
+// RUST SYNTAX: `=>` in match arms
+//
+// Each arm is: pattern => expression
+// The expression becomes the return value of the entire match.
+// No `break` needed - only one arm executes, and there's no fall-through.
 #[cfg(windows)]
 fn map_release_error(code: u32) -> ReleaseLockError {
     match code {
         ERROR_ACCESS_DENIED => ReleaseLockError::AccessDenied,
         2 => ReleaseLockError::FileNotFound, // ERROR_FILE_NOT_FOUND = 2
-        _ => ReleaseLockError::WindowsApiError(code),
+        _ => ReleaseLockError::WindowsApiError(code), // Wildcard: catch all others
     }
 }
 
@@ -961,6 +1121,14 @@ struct LockSmithApp {
     // all_locks: Every file lock we know about (from the last refresh)
     all_locks: Vec<FileLockInfo>,
 
+    // RUST SYNTAX EXPLAINED: HashSet<u32>
+    //
+    // Generic types use angle brackets: Type<InnerType>
+    // This is like C++ templates: std::set<uint32_t>
+    //
+    // HashSet<u32> means "a hash set containing u32 values"
+    // The compiler generates specialized code for this specific type.
+
     // selected_ids: Which locks the user has selected (by file_id)
     // Using a HashSet because:
     // 1. Fast lookup (O(1) to check if an ID is selected)
@@ -985,6 +1153,14 @@ struct LockSmithApp {
 
     // sort_direction: Ascending or descending sort order
     sort_direction: SortDirection,
+
+    // RUST SYNTAX EXPLAINED: bool type
+    //
+    // Unlike C where bool might be 0/1 int, Rust's bool is a true boolean.
+    // It can ONLY be `true` or `false` - no implicit conversion from integers.
+    //
+    //   if (some_integer) { }  // Valid C, NOT valid Rust
+    //   if some_bool { }        // Rust requires actual boolean
 
     // dark_mode: True for dark theme, false for light theme
     dark_mode: bool,
@@ -1054,14 +1230,44 @@ impl LockSmithApp {
     // Parameters:
     // - cc: The "creation context" from eframe, which gives us access to
     //       storage (for loading preferences) and the GUI context
+    //
+    // RUST SYNTAX EXPLAINED: `&eframe::CreationContext<'_>`
+    //
+    // Let's break down this type:
+    //   &                    - This is a REFERENCE (borrowed, not owned)
+    //   eframe::             - From the eframe module
+    //   CreationContext      - The type name
+    //   <'_>                 - A LIFETIME parameter (the `'_` means "infer it")
+    //
+    // Lifetimes ensure references don't outlive what they point to.
+    // The `'_` tells Rust "figure out the lifetime automatically."
+    //
+    // RUST SYNTAX: `-> Self`
+    //
+    // `Self` is an alias for the current type (LockSmithApp).
+    // This function returns a new LockSmithApp instance.
     fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        // Try to load saved preferences from storage
-        // If loading fails, use the default values
+        // RUST SYNTAX EXPLAINED: Method chaining with Option
+        //
+        // This chain handles "might be None" at each step:
+        //
+        //   cc.storage              - Option<&Storage> (might be None)
+        //   .and_then(|s| ...)      - If Some, apply function; if None, stay None
+        //   .unwrap_or_default()    - If Some, unwrap it; if None, use Default
+        //
+        // In C, you'd write nested if statements:
+        //   if (cc->storage != NULL) {
+        //       value = get_value(cc->storage, key);
+        //       if (value == NULL) value = default_value();
+        //   } else {
+        //       value = default_value();
+        //   }
+        //
+        // Rust's Option methods make this more readable and less error-prone.
         let persistence: AppPersistence = cc
-            .storage // Get the storage (might be None)
-            .and_then(|s|                         // If we have storage...
-                eframe::get_value(s, eframe::APP_KEY)) // Try to read our data
-            .unwrap_or_default(); // If anything fails, use default
+            .storage // Option<&Storage> - might be None
+            .and_then(|s| eframe::get_value(s, eframe::APP_KEY)) // Try to read
+            .unwrap_or_default(); // Fall back to default if anything was None
 
         // Create the app with default values, but override dark_mode
         // from the saved preferences
@@ -1157,23 +1363,45 @@ impl LockSmithApp {
 
         // Step 1: Filter
         // Keep only locks that match the search query
+        //
+        // RUST SYNTAX EXPLAINED: Method chaining with iterators
+        //
+        // This chain of methods transforms data step by step:
+        //
+        //   self.all_locks      - Start with Vec<FileLockInfo>
+        //       .iter()          - Convert to Iterator<Item = &FileLockInfo>
+        //       .filter(...)     - Keep only items where closure returns true
+        //       .cloned()        - Convert &FileLockInfo to FileLockInfo (copy)
+        //       .collect()       - Gather into final Vec<FileLockInfo>
+        //
+        // RUST SYNTAX: The double-pipe closure |lock| { ... }
+        //
+        // |lock| is the parameter (like `lock =>` in JavaScript or `lambda lock:` in Python)
+        // The closure captures `query` from the outer scope automatically.
+        //
+        // RUST SYNTAX: .cloned()
+        //
+        // .iter() gives us REFERENCES (&FileLockInfo), not owned values.
+        // .cloned() calls .clone() on each reference to get owned copies.
+        // We need owned values because we're creating a new Vec.
+
         let mut filtered: Vec<FileLockInfo> = self
             .all_locks
-            .iter() // Iterate over all locks
+            .iter() // Iterate over all locks (yields &FileLockInfo)
             .filter(|lock| {
-                // If search is empty, include everything
+                // This closure returns bool: true = keep, false = discard
                 if query.is_empty() {
-                    true
+                    true // Empty query matches everything
                 } else {
-                    // Check if the query appears in filename, path, or username
-                    // (all converted to lowercase for case-insensitive matching)
+                    // Check if query appears in any searchable field
+                    // || is logical OR (short-circuit, like C)
                     lock.file_name.to_lowercase().contains(&query)
                         || lock.file_path.to_lowercase().contains(&query)
                         || lock.username.to_lowercase().contains(&query)
                 }
             })
-            .cloned() // Make copies (we need owned values, not references)
-            .collect(); // Collect into a Vec
+            .cloned() // Clone each &FileLockInfo into FileLockInfo
+            .collect(); // Gather results into Vec<FileLockInfo>
 
         // Step 2: Sort (if a sort column is selected)
         if let Some(column) = &self.sort_column {
@@ -1239,12 +1467,31 @@ impl LockSmithApp {
         let mut success_count = 0;
         let mut errors: Vec<String> = Vec::new();
 
+        // RUST SYNTAX EXPLAINED: `match` expressions
+        //
+        // `match` is like C's switch, but MUCH more powerful:
+        //   - It works on ANY type, not just integers
+        //   - It can destructure complex types (pull out inner values)
+        //   - The compiler ENSURES you handle all cases
+        //
+        // Here, release_lock() returns Result<(), ReleaseLockError>
+        // which is either Ok(()) for success or Err(error) for failure.
+        //
+        // The () is the "unit type" - like void in C. It means "success, no value."
+
         // Try to release each lock
         for id in &ids {
+            // RUST SYNTAX: `match` on a Result type
+            // We must handle BOTH Ok and Err - the compiler enforces this!
             match release_lock(*id) {
+                // Ok(()) means success. The () is the "nothing" value inside Ok.
                 Ok(()) => success_count += 1,
+
+                // Err(e) means failure. `e` captures the error value.
                 Err(e) => {
-                    // Find the lock info to get the filename for the error message
+                    // RUST SYNTAX: .iter().find(|l| ...)
+                    // .find() returns Option<&T> - either Some(&item) or None
+                    // The closure |l| l.file_id == *id is the search predicate
                     if let Some(lock) = self.all_locks.iter().find(|l| l.file_id == *id) {
                         errors.push(format!("{}: {}", lock.file_name, e));
                     } else {
@@ -1282,12 +1529,37 @@ impl LockSmithApp {
     // This is called when the user presses Ctrl+A.
     // Note: only selects VISIBLE locks (those matching the current filter).
     fn select_all_visible(&mut self) {
+        // RUST SYNTAX EXPLAINED: Iterator chains with .iter().map().collect()
+        //
+        // This is the "Rusty" way to transform collections. In C, you might write:
+        //
+        //     int* ids = malloc(locks_count * sizeof(int));
+        //     for (int i = 0; i < locks_count; i++) {
+        //         ids[i] = locks[i].file_id;
+        //     }
+        //
+        // In Rust, we use iterator adapters:
+        //
+        //   .iter()           - Create an iterator over the Vec
+        //   .map(|lock| ...)  - Transform each element (closure syntax)
+        //   .collect()        - Gather results into a new collection
+        //
+        // The |lock| part is a CLOSURE (anonymous function):
+        //   |parameters| expression
+        //
+        // It's like a lambda: (lock) => lock.file_id in JavaScript
+        //
+        // Why iterators?
+        //   - More expressive (says WHAT not HOW)
+        //   - No off-by-one errors
+        //   - Often compiles to the same code as a manual loop
+
         // Get IDs of all visible locks
         let ids: Vec<u32> = self
-            .get_filtered_sorted_locks()
-            .iter()
-            .map(|lock| lock.file_id)
-            .collect();
+            .get_filtered_sorted_locks() // Get filtered list
+            .iter() // Create iterator
+            .map(|lock| lock.file_id) // Extract just the ID from each lock
+            .collect(); // Gather into a Vec<u32>
 
         // Add all IDs to the selection
         for id in ids {
@@ -1427,6 +1699,31 @@ impl eframe::App for LockSmithApp {
         //
         // Success and info messages automatically disappear after 5 seconds.
         // Error and warning messages stay until dismissed.
+        //
+        // RUST SYNTAX EXPLAINED: `if let Some(ref msg) = self.status_message`
+        //
+        // This is "pattern matching" combined with "if". Let's break it down:
+        //
+        // In C, you might write:
+        //     if (self->status_message != NULL) {
+        //         Message* msg = self->status_message;
+        //         // use msg
+        //     }
+        //
+        // In Rust, `self.status_message` is an `Option<StatusMessage>`, which is
+        // either `Some(value)` or `None`. We can't just use it directly - we must
+        // "unwrap" it first.
+        //
+        // `if let Some(ref msg) = self.status_message` means:
+        //   - IF status_message matches the pattern `Some(...)`
+        //   - THEN bind the inner value to `msg`
+        //   - The `ref` keyword means "borrow it, don't move it"
+        //     (without `ref`, Rust would try to MOVE the value out of self)
+        //
+        // This is safer than C because:
+        //   - You CANNOT forget to check for None (null)
+        //   - The compiler FORCES you to handle both cases
+        //   - No null pointer dereference is possible
 
         if let Some(ref msg) = self.status_message {
             match msg.message_type {

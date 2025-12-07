@@ -57,6 +57,7 @@ This book guides you through building **LockSmith** from scratch—a native Wind
 | Chapter | Title | Description |
 |---------|-------|-------------|
 | [13](13-plain-english-specification.md) | **Plain English Specification** | Complete program description for AI/developers |
+| [14](14-thinking-in-rust.md) | **Thinking in Rust** | Rust concepts explained for C programmers |
 
 ## Key Topics Covered
 

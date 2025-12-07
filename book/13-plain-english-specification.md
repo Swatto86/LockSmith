@@ -571,6 +571,8 @@ Whether you're working with AI assistants or human teammates, clear specificatio
 
 ---
 
+**Next Chapter:** [Thinking in Rust →](14-thinking-in-rust.md) — Rust concepts explained for C programmers
+
 **Previous Chapter:** [Final Assembly ←](12-final-assembly.md)
 
 **Back to:** [Table of Contents](README.md)
