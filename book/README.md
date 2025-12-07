@@ -52,7 +52,18 @@ This book guides you through building **LockSmith** from scratch—a native Wind
 | [11](11-continuous-integration.md) | **Continuous Integration** | GitHub Actions, automated testing |
 | [12](12-final-assembly.md) | **Final Assembly** | Putting it all together |
 
+### Part VI: Appendix
+
+| Chapter | Title | Description |
+|---------|-------|-------------|
+| [13](13-plain-english-specification.md) | **Plain English Specification** | Complete program description for AI/developers |
+
 ## Key Topics Covered
+
+### AI-Assisted Development
+- Writing specifications that AI can implement
+- Describing programs in plain English
+- Prompt engineering for code generation
 
 ### Rust Language
 - Ownership and borrowing

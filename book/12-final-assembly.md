@@ -644,5 +644,7 @@ Happy coding! 🔓
 
 ---
 
+**Next Chapter:** [Plain English Specification →](13-plain-english-specification.md) — Learn how to describe this entire program in plain English, perfect for AI-assisted development or creating specifications.
+
 **Previous Chapter:** [← Continuous Integration](11-continuous-integration.md)  
 **Return to:** [Introduction](00-introduction.md)
