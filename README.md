@@ -2,7 +2,7 @@
 
 A lightweight Windows utility for viewing and managing file locks. Built with pure Rust and egui — no WebView2 or runtime dependencies required.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Version](https://img.shields.io/badge/version-1.0.1-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 

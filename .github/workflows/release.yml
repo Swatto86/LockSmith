@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    name: Build and publish
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src
+
+      - name: Build release
+        working-directory: ./src
+        run: cargo build --release
+
+      - name: Stage portable exe
+        shell: pwsh
+        run: |
+          $ver = "${{ github.ref_name }}".TrimStart('v')
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item src/target/release/locksmith.exe "dist/LockSmith_${ver}_x64_portable.exe"
+          "VER=$ver" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Install NSIS
+        run: choco install nsis -y --no-progress
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $ver = $env:VER
+          $exe = Get-ChildItem src/target/release/*.exe |
+            Where-Object { $_.Name -notlike '*setup*' } |
+            Sort-Object Length -Descending | Select-Object -First 1
+          $out = Join-Path (Resolve-Path dist).Path "LockSmith_${ver}_x64-setup.exe"
+          & 'C:\Program Files (x86)\NSIS\makensis.exe' "/DVER=$ver" "/DSRC=$($exe.FullName)" "/DOUT=$out" ".github\installer.nsi"
+          if ($LASTEXITCODE -ne 0) { throw "makensis failed with exit code $LASTEXITCODE" }
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/LockSmith_${{ env.VER }}_x64_portable.exe
+            dist/LockSmith_${{ env.VER }}_x64-setup.exe
